@@ -1,0 +1,287 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="renderer" content="webkit|ie-comp|ie-stand">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport"
+	content="width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+<!--[if lt IE 9]>
+<script type="text/javascript" src="lib/html5shiv.js"></script>
+<script type="text/javascript" src="lib/respond.min.js"></script>
+<![endif]-->
+<link rel="stylesheet" type="text/css"
+	href="static/h-ui/css/H-ui.min.css" />
+<link rel="stylesheet" type="text/css"
+	href="static/h-ui.admin/css/H-ui.admin.css" />
+<link rel="stylesheet" type="text/css"
+	href="lib/Hui-iconfont/1.0.8/iconfont.css" />
+<link rel="stylesheet" type="text/css"
+	href="static/h-ui.admin/skin/default/skin.css" id="skin" />
+<link rel="stylesheet" type="text/css"
+	href="static/h-ui.admin/css/style.css" />
+<script src="static/h-ui/js/jquery.min.js"></script>
+<!--[if IE 6]>
+<script type="text/javascript" src="lib/DD_belatedPNG_0.0.8a-min.js" ></script>
+<script>DD_belatedPNG.fix('*');</script>
+<![endif]-->
+<style>
+table, table tr th, table tr td {
+	border: 1px solid black;
+	text-align: center;
+	font-size: 16px;
+}
+
+table {
+	position: absolute;
+	z-index: 100;
+	text-align: center;
+	border-collapse: collapse;
+	padding: 2px;
+}
+
+table tr th {
+	font-weight: bold;
+}
+
+#subBtn {
+	font-size: 18px;
+	text-align: center;
+	border-radius: 5px;
+	border: 0;
+	margin-top: 2px;
+	background: #5EB95E;
+	color: white;
+	display: -moz-inline-box;
+	display: inline-block;
+	width: 3em;
+}
+
+#pointBtn {
+	font-size: 18px;
+	text-align: center;
+	border-radius: 5px;
+	border: 0;
+	margin-top: 2px;
+	background: #5EB95E;
+	color: white;
+	display: -moz-inline-box;
+	display: inline-block;
+	width: 5em;
+}
+
+#deliverList {
+	width: 500px;
+	height: 400px;
+	z-index: 900;
+	overflow-y: auto;
+	text-align: center; /*让div内部文字居中*/
+	background-color: #C1C1C1;
+	border-radius: 20px;
+	margin-left: 250px;
+	margin-top: 150px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+</style>
+
+<script type="text/javascript">
+	 $(document).ready(function() {
+		 
+		 $("#deliverList").hide();
+		 
+		   $.ajax({
+               type : "POST",
+               url : "http://qianke668.club/product/order/search",
+               contentType : "application/json;charset=utf-8",
+               data : JSON.stringify({
+                   tenant_code:'0001',
+                   status:'1'
+                   }),
+               dataType : "json",
+               success : function(message) {
+                   //alert(JSON.stringify(message.body));
+                   console.log(message.body);
+                   //console.log("json:"+JSON.stringify(message.body));
+                    for(var order of message.body){
+                    	//未支付 0；  未配送 1；  配送中 2；已完成 3
+                    	var orderStatus="";
+                    	if(order.status=='0'){
+                    		orderStatus='未支付';
+                    	}else if(order.status=='1'){
+                    		orderStatus='未配送';
+                    	}else if(order.status=='2'){
+                    		orderStatus='配送中';
+                    	}else{
+                    		orderStatus='已完成';
+                    	}
+                    	var orderId=order.orderid.toString();
+                        var trHTML="<tr><td>"+order.product_info+"</td> <td>"+order.money+"</td> <td>"+order.contact+"</td> <td>"+order.delivery_address+"</td> <td>"+order.mobile+"</td><td>" +orderStatus+"</td><td>" +order.create_time+"</td><td   ><span    onclick='deliver(\""+orderId+"\")'  onmouseover='over(this)' onmouseleave='leave(this)'    id='subBtn' >配送</span></td></tr> ";
+                        $("#order-table").append(trHTML); 
+              
+                    };
+
+                   
+                   // $("#").append(trHTML);
+                   
+               },
+               error : function(message) {
+                   alert("提交失败" + JSON.stringify(message));
+               }
+         });
+		  
+		   
+		   
+		
+		 
+	});
+	 
+	 function over(x) {
+
+	        x.style.color = "purple";
+	        x.style.cursor = "pointer";
+	    };
+
+	  
+
+	    function leave(x) {
+
+	        x.style.color = "white";
+	        x.style.cursor = "default";
+	    };
+	    
+	    
+	    function deliver(orderId){
+	      //member-list.html
+	      //查询全部配送员  
+           $.ajax({
+               type : "POST",
+               url : "http://qianke668.club/user/list/deliveryman",
+               contentType : "application/json;charset=utf-8",
+               data : JSON.stringify({
+                   tenant_code:'0001'
+                   }),
+               dataType : "json",
+               success : function(message) {
+                   for(var deliverman of message.body){
+                       //alert(deliverman.name+deliverman.mobile);
+                       var workstatus="";
+                       if(deliverman.status=='0'){
+                    	   workstatus="空闲中";
+                       }else{
+                    	   workstatus="派送中";
+                       }
+                       
+                       var deHTML="<tr><td>"+deliverman.name+"</td> <td>"+deliverman.mobile+"</td> <td>"+workstatus+"</td> <td   ><span    onclick='point(\""+orderId+"\",\""+deliverman.openid+"\")'  onmouseover='over(this)' onmouseleave='leave(this)'    id='pointBtn' >指派给他</span></td></tr> ";
+                       $("#deliver-table").append(deHTML); 
+                       
+                   };
+                   
+               },
+               error : function(message) {
+                   alert("提交失败" + JSON.stringify(message));
+               }
+         });
+	    	 $("#deliverList").show();
+	    }
+	    
+	    function point(orderId,openid){
+	    	//alert(orderId+","+openid);
+	    	
+	    	 //TODO:将订单号发给该配送员；查出订单详情；地址，电话，联系人；
+	    	 //推送模板消息给该配送员，同时让用户也收到该模板消息；
+	    	  $.ajax({
+               type : "POST",
+               url : "http://qianke668.club/product/order/point",
+               contentType : "application/json;charset=utf-8",
+               data : JSON.stringify({
+            	   orderid:orderId,
+            	   deliveryman:openid
+                   }),
+               dataType : "json",
+               success : function(message) {
+            	   alert(message.body);
+            	   window.location.reload();
+               },
+               error : function(message) {
+                   alert("提交失败" + JSON.stringify(message));
+               }
+         });
+	    	 //指派操作之后
+	    	 
+	    }
+	    
+</script>
+
+<title>订单列表</title>
+</head>
+<body>
+<nav class="breadcrumb"><i class="Hui-iconfont">&#xe67f;</i> 首页 <span class="c-gray en">&gt;</span> 订单管理 <span class="c-gray en">&gt;</span> 待送订单 <a class="btn btn-success radius r" style="line-height:1.6em;margin-top:3px" href="javascript:location.replace(location.href);" title="刷新" ><i class="Hui-iconfont">&#xe68f;</i></a></nav>
+
+	<div id="tenantCode"></div>
+
+	<div class="page-container">
+		<table id="order-table">
+			<tbody>
+				<tr>
+					<th>订单详情</th>
+					<th>金额</th>
+					<th>收货人</th>
+					<th>配送地址</th>
+					<th>联系电话</th>
+					<th>订单状态</th>
+					<th>下单时间</th>
+					<th>操作</th>
+				</tr>
+
+			</tbody>
+		</table>
+		<img style="position: relative; opacity: 0.7;" alt=""
+			src="static/h-ui.admin/images/admin-login-bg.jpg" />
+
+	</div>
+
+	<div id="deliverList">
+		<table id="deliver-table">
+			<tbody>
+				<tr>
+					<th colspan="4">配送员列表</th>
+
+				</tr>
+				<tr>
+					<th>配送员</th>
+					<th>电话</th>
+					<th>状态</th>
+					<th>操作</th>
+
+				</tr>
+
+			</tbody>
+		</table>
+
+
+
+
+	</div>
+
+
+
+	<footer class="footer mt-20">
+		<div class="container">
+			<p>
+				感谢jQuery、layer、laypage、Validform、UEditor、My97DatePicker、iconfont、Datatables、WebUploaded、icheck、highcharts、bootstrap-Switch<br>
+				Copyright &copy;2015-2017 H-ui.admin v3.1 All Rights Reserved.<br>
+				本后台系统由<a href="http://www.h-ui.net/" target="_blank"
+					title="H-ui前端框架">H-ui前端框架</a>提供前端技术支持
+			</p>
+		</div>
+	</footer>
+
+	<script type="text/javascript" src="static/h-ui/js/H-ui.min.js"></script>
+	
+</body>
+</html>

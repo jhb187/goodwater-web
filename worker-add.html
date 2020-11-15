@@ -1,0 +1,412 @@
+<!--_meta 作为公共模版分离出去-->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+
+<meta name="viewport"
+	content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="static/h-ui/css/weui.css" />
+<link rel="stylesheet" href="static/h-ui/css/myweui.css" />
+<script src="static/h-ui/js/jquery.min.js"></script>
+ <link rel="stylesheet" href="static/h-ui/css/toastr.css" />
+ <script src="static/h-ui/js/toastr.min.js"></script>
+<!-- <script src="static/h-ui/js/weui.js"></script> -->
+<title>员工注册</title>
+
+<script>
+var codeCheckStatus = false;
+function phoneUniqueCheck() {
+    var phonenum = $("#userPhone").val();
+    var data = {
+        mobile : phonenum
+    };
+
+    $.ajax({
+        type : "POST",
+        // url :"http://www.qianke668.club/sms/send",
+        url : "http://qianke668.club/user/mobilecheck/worker",
+        contentType : "application/json;charset=utf-8",
+        data : JSON.stringify(data),
+        dataType : "json",
+        success : function(message) {
+            if (message.body == '0') {
+            } else {
+                alert("手机号已存在");//用weui弹框，否则多次点击会退出
+                //return false;
+            }
+
+        },
+        error : function(message) {
+            alert("提交失败" + JSON.stringify(message));
+
+        }
+    });
+
+}
+;
+
+function sendyzm(obj) {
+    var phone = $("#userPhone").val();
+    var result = isPhoneNum();
+    var data = {
+        mobile : phone,
+        handle : "【好水上府】注册"
+    };
+    if (result) {
+        $.ajax({
+            type : "POST",
+            // url :"http://www.qianke668.club/sms/send",
+            url : "http://qianke668.club/sms/send",
+            contentType : "application/json;charset=utf-8",
+            data : JSON.stringify(data),
+            dataType : "json",
+            success : function(message) {
+
+                if (message.body.result == 0) {
+                    $("#toast").show();
+                    setTime(obj); //开始倒计时
+                } else {
+                    alert(message.body.errmsg);
+                }
+
+            },
+            error : function(message) {
+                alert("提交失败" + JSON.stringify(message));
+
+            }
+        });
+
+    }
+}
+;
+
+//60s倒计时实现逻辑
+var countdown = 60;
+
+function setTime(obj) {
+    if (countdown == 0) {
+        obj.prop('disabled', false);
+        obj.text("获取验证码");
+        countdown = 60; //60秒过后button上的文字初始化,计时器初始化;
+        return;
+    } else {
+
+        obj.prop('disabled', true);
+        obj.text(countdown + "s后重新发送");
+        countdown--;
+        if (countdown == 57) {
+            $("#toast").hide();
+        }
+    }
+    //setTimeout jquery自带定时API
+    setTimeout(function() {
+        setTime(obj)
+    }, 1000) //每1000毫秒执行一次
+}
+;
+
+//校验手机号是否合法
+function isPhoneNum() {
+    var phonenum = $("#userPhone").val();
+    var reg = /^[1][3,4,5,7,8][0-9]{9}$/;
+    if (!reg.test(phonenum)) {
+        $("#numorror").show(); //weui弹框
+        //1.show方法一直不起作用的原因是因为在隐藏注册提醒弹框时通过类选择器把手机号提醒也给一并remove掉
+        return false;
+    } else {
+        return true;
+    }
+}
+;
+//获取url重定向携带的参数
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        if (pair[0] == variable) {
+            return pair[1];
+        }
+    }
+    return (false);
+}
+
+//ajax向后端提交用户注册信息
+function submitInfo() {
+    //获取所有表单信息，并调用接口，接口做重定向
+    var contact = $("#contact").val();
+    var userPhone = $("#userPhone").val();
+    var openid = getQueryVariable("openid");
+    var data = {
+        //user 的data     
+        tenant_code:'0001',//一个商户一个员工注册页面；TODO:后期写成自动化的，根据界面的微信配置
+        openid : openid,
+        mobile : userPhone,
+        name : contact
+    };
+    $.ajax({
+        type : "POST",
+        url : "http://qianke668.club/user/addworker",
+        contentType : "application/json;charset=utf-8",
+        data : JSON.stringify(data),
+        dataType : "json",
+        success : function(message) {
+            if (message.body == '1') { //TODO:返回结果做判断，根据json返回这里重新写判断条件
+                //weui的添加成功结果页；
+                    
+                     toastr.success("注册成功");
+                     window.location.href = "http://qianke668.club:8090/worker-add-success.html";
+                     
+            } else {
+                alert(message.body.errmsg);
+            }
+        },
+        error : function(message) {
+            alert("提交失败" + JSON.stringify(message));
+        }
+    });
+}
+
+//检查所有输入框，全部满足返回true，可以提交
+function checkAll() {
+    var contact = $("#contact").val();
+    var userPhone = $("#userPhone").val();
+    var inputCode = $("#inputcode").val();
+    if (contact == null || contact == "") {
+        alert("姓名不能为空");
+        return false;
+    } else {
+            if (userPhone == null || userPhone == "") {
+                alert("手机号不能为空");
+            } else {
+                var result = isPhoneNum();
+                if (result) {
+                	phoneUniqueCheck();
+                	
+                	
+                    if (inputCode == null || inputCode == "") {
+                        alert("验证码不能为空");
+                    } else {
+                        if (codeCheckStatus) {
+                            return true;
+                        } else {
+                            alert("请输入正确验证码");
+                        }
+                    }
+                    ;
+
+                }
+            }
+            ;
+        }
+        ;
+    }
+    ;
+
+
+
+
+	$(document).ready(function() {
+		
+		
+		
+		 var openid = getQueryVariable("openid");
+		//查询该员工是否已经注册
+		 $.ajax({
+        type : "POST",
+        url : "http://qianke668.club/user/checkworkerreg",
+        contentType : "application/json;charset=utf-8",
+        data : JSON.stringify(
+        		{openid:openid}
+        ),
+        dataType : "json",
+        success : function(message) {
+        	 if (message.body == '0') {
+             } else {
+            	   window.location.href = "http://qianke668.club:8090/worker-add-already.html";
+                 //return false;
+             }
+        },
+        error : function(message) {
+            alert("提交失败" + JSON.stringify(message));
+        }
+    });
+		 toastr.options= {
+	                "closeButton":false,//显示关闭按钮
+	                "debug":false,//启用debug
+	                "positionClass":"toast-top-center",//弹出的位置
+	                "showDuration":"300",//显示的时间
+	                "hideDuration":"300",//消失的时间
+	                "timeOut":"2000",//停留的时间
+	                "extendedTimeOut":"1000",//控制时间
+	                "showEasing":"swing",//显示时的动画缓冲方式
+	                "hideEasing":"linear",//消失时的动画缓冲方式
+	                "showMethod":"fadeIn",//显示时的动画方式
+	                "hideMethod":"fadeOut"//消失时的动画方式
+	                };
+		 
+		 
+		
+	    //var codeCheckStatus = false;
+		$("#numorror").hide();
+		
+		$("#mobilebt").click(function() {
+			$("#numorror").hide();
+		});
+
+		//提交验证与提交
+		$("#subbtn").click(function() {
+			//先进行校验，校验通过，提交
+			if (checkAll()) {
+				//alert("提交成功！");
+				submitInfo();
+			}
+
+		});
+
+		//验证码验证失去焦点事件
+		$("#inputcode").blur(function() {
+			//alert("验证码失去了焦点");
+			//  同时让提交时的判断生效，提交需要所有判断通过才可以，1.联系人非空，2.手机号非空，地址非空，3.验证码非空且正确
+			var phone = $("#userPhone").val();
+			var inputCode = $("#inputcode").val();
+			var data = {
+				mobile : phone,
+				code : inputCode
+			};
+			if (inputCode != null && inputCode != "" && inputCode.length == 4) {
+				$.ajax({
+					type : "POST",
+					url : "http://qianke668.club/sms/check",
+					contentType : "application/json;charset=utf-8",
+					data : JSON.stringify(data),
+					dataType : "json",
+					success : function(message) {
+						//TODO:正确弹出weui提示，
+						if (message.body == "success") {
+							$("#wrong").css("color", "green");
+							$("#wrong").html("验证通过");
+							$("#wrong").show();
+							//TODO:增加一个变量赋值为true,用于提交判断
+							codeCheckStatus = true;
+						} else if (message.body == "fail") {
+							$("#wrong").css("color", "red");
+							$("#wrong").html("验证码错误");
+							$("#wrong").show();
+							codeCheckStatus = false;
+						} else {
+							//alert(message.body);
+						}
+					},
+					error : function(message) {
+						alert("提交失败" + JSON.stringify(message) + "参数:" + JSON.stringify(data));
+
+					}
+				});
+			}
+
+		});
+
+		$("#code").click(function() {
+			sendyzm($("#code"));
+		});
+		//用ajax提交到后台的发送短信接口
+		
+
+		$("#userPhone").blur(function() {
+			phoneUniqueCheck();
+
+		});
+
+		//检查手机号是否唯一
+		
+
+	});
+</script>
+
+</head>
+
+<body>
+	<!--以下为隐藏的弹框，根据业务需要显示  -->
+	<div id="toast" style="display: none;">
+		<div class="weui_mask_transparent"></div>
+		<div class="weui_toast">
+			<i class="weui_icon_toast"></i>
+			<p class="weui_toast_content">发送成功</p>
+		</div>
+	</div>
+
+	<div id="subtoast" style="display: none;">
+		<div class="weui_mask_transparent"></div>
+		<div class="weui_toast">
+			<i class="weui_icon_toast"></i>
+			<p class="weui_toast_content">提交成功</p>
+		</div>
+	</div>
+
+	<div id="numorror" class="weui_dialog_alert" style="display: none;">
+		<div class="weui_mask"></div>
+		<div class="weui_dialog">
+			<div class="weui_dialog_hd">
+				<strong class="weui_dialog_title">格式错误</strong>
+			</div>
+			<div class="weui_dialog_bd">请输入有效的手机号码！</div>
+			<div id="mobilebt" class="weui_dialog_ft">
+				<a href="javascript:;" class="weui_btn_dialog primary">确定</a>
+			</div>
+		</div>
+	</div>
+
+	<!-------------------------------------------------------------------->
+	<!--以上为隐藏的弹框，根据业务需要显示  -->
+
+	<div class="weui-cells__title">以下信息为员工注册必填项</div>
+
+
+	<div class="weui-cell weui-cell_vcode">
+		<div class="weui-cell__hd">
+			<label class="weui-label">手机号</label>
+		</div>
+		<div class="weui-cell__bd">
+			<input id="userPhone" class="weui-input" type="tel"
+				placeholder="请输入手机号" />
+		</div>
+		<div class="weui-cell__ft">
+			<button class="weui-vcode-btn" id="code">获取验证码</button>
+		</div>
+	</div>
+	<div class="weui-cell">
+		<div class="weui-cell__hd">
+			<label class="weui-label">验证码</label>
+		</div>
+		<div class="weui-cell__bd">
+			<input id="inputcode" class="weui-input" type="number"
+				placeholder="请输入短信验证码" />
+
+		</div>
+		<div class="weui_cell_ft">
+			<span style="color: red; display: none" id="wrong">验证码错误</span>
+		</div>
+
+	</div>
+	<div class="weui-cell">
+
+		<div class="weui-cell__hd">
+			<label class="weui-label">姓名</label>
+		</div>
+		<div class="weui-cell__bd">
+			<input id="contact" class="weui-input" type="text"
+				placeholder="请输入员工姓名" />
+		</div>
+	</div>
+
+	<div id="subbtn" class="weui-btn-area">
+		<a class="weui-btn weui-btn_primary" href="javascript:"
+			id="showTooltips">提&nbsp;&nbsp;交</a>
+	</div>
+</body>
+
+</html>

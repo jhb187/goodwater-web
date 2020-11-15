@@ -1,0 +1,246 @@
+<!--_meta 作为公共模版分离出去-->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+
+<meta name="viewport"
+	content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="static/h-ui/css/weui.css" />
+
+<style>
+li {
+	list-style-type: none;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+}
+
+html, body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+#web {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+/* #subbtn {
+    overflow: hidden;
+    position: absolute;
+    margin-bottom: 0px;
+} */
+.footer {
+	position: absolute;
+	height: 50px;
+	width: 100%;
+	bottom: 0;
+}
+
+.contents {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 50px;
+	/*height: calc(100% - 50px);*/
+	overflow: auto;
+}
+</style>
+
+<link rel="stylesheet" href="static/h-ui/css/myweui.css" />
+<script src="static/h-ui/js/jquery.min.js"></script>
+<script src="static/h-ui/js/jweixin-1.4.0.js"></script>
+<link rel="stylesheet" href="static/h-ui/css/toastr.css" />
+<script src="static/h-ui/js/toastr.min.js"></script>
+<!-- <script src="static/h-ui/js/weui.js"></script> -->
+<title>确认接单</title>
+
+<script>
+	$(document).ready(function() {
+		//TODO:调用后台接口，查询全部水的种类，库存，价格，图片
+		//调用接口进行js-sdk的注册
+		$("#subbtn").hide();
+		$("#finish").hide();
+		$(".page").hide();
+		
+		toastr.options = {
+			"closeButton" : false,//显示关闭按钮
+			"debug" : false,//启用debug
+			"positionClass" : "toast-top-center",//弹出的位置
+			"showDuration" : "300",//显示的时间
+			"hideDuration" : "300",//消失的时间
+			"timeOut" : "1000",//停留的时间
+			"extendedTimeOut" : "1000",//控制时间
+			"showEasing" : "swing",//显示时的动画缓冲方式
+			"hideEasing" : "linear",//消失时的动画缓冲方式
+			"showMethod" : "fadeIn",//显示时的动画方式
+			"hideMethod" : "fadeOut"//消失时的动画方式
+		};
+		var orderid = getQueryVariable("orderid");
+		var openid = getQueryVariable("openid");
+		var deliverman = getQueryVariable("deliverman");
+		//var orderStatus=getQueryVariable("status");
+		//根据id查询订单状态
+		$.ajax({
+			type : "POST",
+			url : "http://qianke668.club/product/order/getstatus",
+			contentType : "application/json;charset=utf-8",
+			data : JSON.stringify({
+				orderid : orderid
+			}),
+			dataType : "json",
+			success : function(message) {
+				var orderStatus = message.body.status;
+
+				if (orderStatus == '1') {
+					$("#subbtn").show();
+
+				} else if (orderStatus == '2') {
+					//显示订单状态与 确认送达 按钮，确认送达发送模板消息；
+					$("#finish").show();
+				} else {
+					//显示订单已经完成页面
+					$(".page").show();
+				}
+
+			},
+			error : function(message) {
+				alert("提交失败" + JSON.stringify(message));
+			}
+		});
+
+		//修改状态为派送；不能再点，展示别的页面；
+		$("#subbtn").click(function() {
+
+			$.ajax({
+				type : "POST",
+				url : "http://qianke668.club/product/order/deliverconfirm",
+				contentType : "application/json;charset=utf-8",
+				data : JSON.stringify({
+					orderid : orderid,
+					status : '2',
+					openid : openid,
+					deliveryman : deliverman
+				}),
+				dataType : "json",
+				success : function(message) {
+					alert(message.body);
+					window.location.reload();
+				},
+				error : function(message) {
+					alert("提交失败" + JSON.stringify(message));
+				}
+			});
+
+		});
+
+		//修改状态为派送；不能再点，展示别的页面；
+		$("#finish").click(function() {
+
+			$.ajax({
+				type : "POST",
+				url : "http://qianke668.club/product/order/finish",
+				contentType : "application/json;charset=utf-8",
+				data : JSON.stringify({
+					orderid : orderid,
+					openid : openid,
+					status : '3'
+				//买家openid
+				}),
+				dataType : "json",
+				success : function(message) {
+					alert(message.body);
+					window.location.reload();
+				},
+				error : function(message) {
+					alert("提交失败" + JSON.stringify(message));
+				}
+			});
+
+		});
+
+	});
+
+	//获取url重定向携带的参数
+	function getQueryVariable(variable) {
+		var query = window.location.search.substring(1);
+		var vars = query.split("&");
+		for (var i = 0; i < vars.length; i++) {
+			var pair = vars[i].split("=");
+			if (pair[0] == variable) {
+				return pair[1];
+			}
+		}
+		return (false);
+	}
+</script>
+
+</head>
+
+<body>
+	<!-- <div class="weui-cell" ></div> -->
+
+
+
+	<div id="subbtn" class="weui-btn-area">
+	   <div class="weui-cells__title">系统已将该订单分配给你</div>
+		<div class="weui-cells__title">请确认接单：</div>
+		<a class="weui-btn weui-btn_primary" href="javascript:"
+			style="width: 85%" id="showTooltips">确&nbsp;认&nbsp;接&nbsp;单</a>
+	</div>
+
+
+
+
+	<div id="finish" class="weui-btn-area">
+         <div class="weui-cells__title">买家已经收到开始配送的信息，请尽快上门配送</div>
+         
+		<div class="weui-cells__title">如订单已经送达，请点击确认送达：</div>
+		<a class="weui-btn weui-btn_primary" href="javascript:"
+			style="width: 85%" id="showTooltips">确&nbsp;认&nbsp;送&nbsp;达</a>
+	</div>
+
+	
+<div class="page">
+    <div class="weui-msg">
+        <div class="weui-msg__icon-area"><i class="weui-icon-success weui-icon_msg"></i></div>
+        <div class="weui-msg__text-area">
+            <h2 class="weui-msg__title">订单已完成</h2>
+            <p class="weui-msg__desc">该订单已完成配送，请直接返回公众号接单首页，等待新的订单<a href="javascript:void(0);"></a></p>
+        </div>
+        <div class="weui-msg__opr-area">
+            <p class="weui-btn-area">
+               
+            </p>
+        </div>
+        <div class="weui-msg__tips-area">
+          <p class="weui-msg__tips"><a href="javascript:void(0);"></a></p>
+        </div>
+        <div class="weui-msg__extra-area">
+            <div class="weui-footer">
+                <p class="weui-footer__links">
+                    <a href="javascript:void(0);" class="weui-footer__link"></a>
+                </p>
+                <p class="weui-footer__text">Copyright &copy; 2008-2016 weui.io</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+</body>
+
+</html>

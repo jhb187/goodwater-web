@@ -1,0 +1,241 @@
+<!--_meta 作为公共模版分离出去-->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+
+<meta name="viewport"
+	content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="static/h-ui/css/weui.css" />
+
+<style>
+li {
+	list-style-type: none;
+}
+
+
+* {
+	margin: 0;
+	padding: 0;
+}
+
+html, body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+#web {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+/* #subbtn {
+    overflow: hidden;
+    position: absolute;
+    margin-bottom: 0px;
+} */
+
+.footer {
+    position: absolute;
+    height: 50px;
+    width: 100%;
+    bottom: 0;
+}
+
+.contents {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 50px;
+	/*height: calc(100% - 50px);*/
+	overflow: auto;
+}
+</style>
+
+<link rel="stylesheet" href="static/h-ui/css/myweui.css" />
+<script src="static/h-ui/js/jquery.min.js"></script>
+<script src="static/h-ui/js/jweixin-1.4.0.js"></script>
+<link rel="stylesheet" href="static/h-ui/css/toastr.css" />
+<script src="static/h-ui/js/toastr.min.js"></script>
+<!-- <script src="static/h-ui/js/weui.js"></script> -->
+<title>在线超市</title>
+
+<script>
+	$(document).ready(function() {
+		//TODO:调用后台接口，查询全部水的种类，库存，价格，图片
+		  //调用接口进行js-sdk的注册
+		  toastr.options= {
+                "closeButton":false,//显示关闭按钮
+                "debug":false,//启用debug
+                "positionClass":"toast-top-center",//弹出的位置
+                "showDuration":"300",//显示的时间
+                "hideDuration":"300",//消失的时间
+                "timeOut":"1000",//停留的时间
+                "extendedTimeOut":"1000",//控制时间
+                "showEasing":"swing",//显示时的动画缓冲方式
+                "hideEasing":"linear",//消失时的动画缓冲方式
+                "showMethod":"fadeIn",//显示时的动画方式
+                "hideMethod":"fadeOut"//消失时的动画方式
+                };
+        $.ajax({
+            type : "POST",
+            url : "http://qianke668.club/product/list",
+            contentType : "application/json;charset=utf-8",
+            data : JSON.stringify({
+            	tenantCode:'0001',//TODO:从sess中获取当前租户，
+            	category:'1'
+            	}),
+            dataType : "json",
+            success : function(message) {
+               //alert(JSON.stringify(message.body));
+            	 var param="";
+            	// var countIndex=1;用商品id代替countIndex
+                 for(var product in message.body){
+                     param += '<li  style="height:8em;"    class="waterList" ><div  id="imgandbut"> <img style="width:6em;height:6em;"  id="img'+message.body[product].id+'"   src="static/h-ui/images/'+message.body[product].img+'"></img>  <div style="float:right;margin-left:4em;margin-top:2em;"  ><div>购买数量</div><input style="height:2em;"  type="button" id="btnRedu" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"  onclick="numRedu('+message.body[product].id+')"   /> &nbsp;<span  class="waterCount" id="count'+message.body[product].id+'" >0</span>&nbsp;<input style="height:2em" type="button" id="btnPlus" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"   onclick="numPlus('+message.body[product].id+')"  />   </div> </div>    <div  style="margin-bottom:0px"    id="info"><span   id="name'+message.body[product].id+'">' +message.body[product].name +'</span>&nbsp;&nbsp;<span id="price'+message.body[product].id+'" style="color:red;font-size: 18px;">￥'+message.body[product].price+'</span>&nbsp;   </div>       </li> <hr/>';
+                 };
+                // countIndex=1;
+                 $("#productLine").html(param);
+                 
+            },
+            error : function(message) {
+                alert("提交失败" + JSON.stringify(message));
+
+            }
+        });
+
+		////
+		
+         
+		function Product(id,imgSrc,count,name,price){
+			this.id=id;
+			this.name = name;
+		    this.name = name;
+		    this.imgSrc = imgSrc;
+		    this.count = count;
+		    this.price = price;
+		}
+		
+		
+		
+		
+		//支付接口调用  
+		$("#subbtn").click(function() {
+			var idArr =new Array();
+			var productList=new Array();
+			var sum=0;
+			$(".waterCount").each(function(){
+				if($(this).text()!='0'){
+					var idName=$(this).attr("id");
+					idArr.push(idName.slice(5));
+				}
+				sum=parseInt($(this).text())+sum;
+            });
+			if( sum==0){
+                toastr.warning("您未选择任何商品！");
+            }else{
+            	 //toastr.success("商品总数量"+sum);
+            	 
+            	 for (var id of idArr) {
+            		var imgSrc= $("#img"+id).attr("src");
+            		var count=$("#count"+id).html();
+            		var name=$("#name"+id).html();
+            		var price=$("#price"+id).html();
+            		var product= new Product(id,imgSrc,count,name,price);
+            		productList.push(product);
+            	 }
+            	var strparam= JSON.stringify(productList);
+            	
+            	var openid=getQueryVariable();
+            	 window.location.href = encodeURI("http://qianke668.club:8090/order.html?productList="+strparam+"&openid="+openid);
+            	 //TODO:携带该productList到订单确认页面
+            	//????问题：如何携带数组到下一个页面
+            }
+		});
+         
+		
+		
+		
+	});
+	
+	
+	  function objToStr(obj) { // 将对象转换成查询字符串{name:liyansheng,age:10}--->name=liyansheng&age=10
+         var result = "";
+         for (var key in obj) {
+             result += (key + "=" + obj[key] + "&");
+         }
+
+         if (result.length > 0) {
+             result = result.substring(0, result.length - 1);
+         }
+         return encodeURIComponent(result);
+     };
+     
+     function getQueryVariable() {
+         var query = window.location.search.substring(1);
+         var param=decodeURI(query);
+         var vars = param.split("=");
+         return vars[1];
+         return (false);
+     }
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	function numRedu( index){
+		  var count = document.getElementById('count'+index);
+			  if(count.innerHTML>0){
+				  count.innerHTML--; 
+			  }else{
+				  toastr.warning("购买数量不可小于0");
+			  }
+			 
+	};
+	function numPlus(index){
+		 var count = document.getElementById('count'+index);
+         count.innerHTML++;
+   };
+   function toPay(){
+	   var countList=$(".waterCount").val();
+       alert("长度："+countList.length);
+       for(count in countList){
+           alert("cc"+count);
+       }
+        
+   }
+   
+	
+</script>
+
+</head>
+
+<body>
+	<!-- <div class="weui-cell" ></div> -->
+	<div id="web">
+		<div class="contents">
+			<div class="weui-cells__title">按+ - 按钮输入要购买桶装水的数量</div>
+			<div class="weui-cell">
+
+				<div class="weui-cell__hd">
+					<ul id="productLine"></ul>
+				</div>
+			</div>
+		</div>
+		<div  class="footer">
+		    <span id="subbtn" class="weui-btn weui-btn_primary">去&nbsp;结&nbsp;算</span>
+			
+		</div>
+	</div>
+</body>
+
+</html>

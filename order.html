@@ -1,0 +1,428 @@
+﻿<!--_meta 作为公共模版分离出去-->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+
+<meta name="viewport"
+	content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="static/h-ui/css/weui.css" />
+
+<style>
+li {
+	list-style-type: none;
+}
+
+#subDiv {
+	overflow: hidden;
+	position: absolute;
+	margin-bottom: 0px;
+}
+
+#subBtn{
+font-size: 20px;
+text-align: center;
+border-radius: 5px; 
+border: 0;
+margin-top: 2px;
+float: right; 
+margin-left: 4em; 
+background: red;
+color: white;
+display: -moz-inline-box;
+display: inline-block; 
+width: 6em;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+}
+
+html, body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+#addressline {
+	display: block;
+	height: auto;
+	max-width: 100%;
+}
+
+.web {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+.footer {
+	position: absolute;
+	height: 50px;
+	width: 100%;
+	bottom: 0;
+}
+
+.content {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 50px;
+	/*height: calc(100% - 50px);*/
+	overflow: auto;
+}
+</style>
+
+<link rel="stylesheet" href="static/h-ui/css/myweui.css" />
+<script src="static/h-ui/js/jquery.min.js"></script>
+<script src="static/h-ui/js/jweixin-1.4.0.js"></script>
+<link rel="stylesheet" href="static/h-ui/css/toastr.css" />
+<script src="static/h-ui/js/toastr.min.js"></script>
+<!-- <script src="static/h-ui/js/weui.js"></script> -->
+<title>填写订单</title>
+
+
+<script type="text/javascript">
+	//获取url重定向携带的参数
+	function getQueryVariable() {
+		var query = window.location.search.substring(1);
+		var param=decodeURI(query);
+		var vars = param.split("=");
+		return vars[1];
+		return (false);
+	}
+  
+	//获取url重定向携带的参数
+    function getVariable(variable) {
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i = 0; i < vars.length; i++) {
+            var pair = vars[i].split("=");
+            if (pair[0] == variable) {
+                return pair[1];
+            }
+        }
+        return (false);
+    }
+	
+	$(document).ready(function() {
+            /*******判断是否在微信内打开**************/
+		    var ua = navigator.userAgent.toLowerCase();  
+		    if(ua.match(/MicroMessenger/i)=="micromessenger") {//这就是微信用的内置浏览器  
+		        
+		    } else {  
+		       // alert("请在微信客户端内打开！");
+		        document.head.innerHTML = '<title>抱歉，出错了</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0"><link rel="stylesheet" type="text/css" href="https://res.wx.qq.com/open/libs/weui/0.4.1/weui.css">';
+                document.body.innerHTML = '<div class="weui_msg"><div class="weui_icon_area"><i class="weui_icon_info weui_icon_msg"></i></div><div class="weui_text_area"><h4 class="weui_msg_title">请在微信客户端打开链接</h4></div></div>';
+		    }  
+		    /******以上为判断是否在微信内打开 ***************/	    
+
+		
+	
+	
+	
+		 $("#ordersuccess").hide();
+		
+		 toastr.options= {
+	                "closeButton":false,//显示关闭按钮
+	                "debug":false,//启用debug
+	                "positionClass":"toast-top-center",//弹出的位置
+	                "showDuration":"3000",//显示的时间
+	                "hideDuration":"300",//消失的时间
+	                "timeOut":"3000",//停留的时间
+	                "extendedTimeOut":"1000",//控制时间
+	                "showEasing":"swing",//显示时的动画缓冲方式
+	                "hideEasing":"linear",//消失时的动画缓冲方式
+	                "showMethod":"fadeIn",//显示时的动画方式
+	                "hideMethod":"fadeOut"//消失时的动画方式
+	                };
+		
+		
+		
+		
+		var openid=getVariable("openid");
+		var tenantCode="0000";
+		//openid查询电话地址联系人
+		var data={
+				openid:openid
+		};
+		$.ajax({
+                    type : "POST",
+                    // url :"http://www.qianke668.club/sms/send",
+                    url : "http://qianke668.club/user/login",
+                    contentType : "application/json;charset=utf-8",
+                    data : JSON.stringify(data),
+                    dataType : "json",
+                    success : function(message) {
+                      $("#contact").html(message.body.contact);
+                      $("#address").html(message.body.address);
+                      $("#mobile").html(message.body.mobile);
+                      tenantCode=message.body.tenant_code;
+                    },
+                    error : function(message) {
+                        alert("提交失败" + JSON.stringify(message));
+
+                    }
+          });
+	
+	      //查询用户的水卡信息
+		  $.ajax({
+                    type : "POST",
+                    // url :"http://www.qianke668.club/sms/send",
+                    url : "http://qianke668.club/user/cardinfo",
+                    contentType : "application/json;charset=utf-8",
+                    data : JSON.stringify(data),
+                    dataType : "json",
+                    success : function(message) {
+                     
+                      if(message.head.respCode=='0000000'){
+					      $("#paymode").html('+水卡抵扣');
+                    	  //循环展示
+                    	 // alert(message.head.respCode);
+                    	// $("#hascardtip").html('&nbsp;&nbsp;&nbsp;当前账户已购买的电子水票');
+                    	 // var cardList=message.body;
+                    	 // var param='<tr> <th>卡号</th> <th>商品名称</th> <th>剩余桶数</th></tr>';
+                    	 //// for(var card of cardList){
+                           // param += '<tr><td>'+card.id+'</td><td>'+card.name+'</td>  <td>'+card.count+'</td></tr>';
+                    	//  }
+                    	//  $("#cardLine").html(param);
+                      }else{
+                    	// $("#hascardtip").html(message.head.respContent);
+                    	  $("#paymode").html('');
+                      }
+                    },
+                    error : function(message) {
+                        alert("提交失败" + JSON.stringify(message));
+
+                    }
+          });
+	
+	
+	
+	
+	
+		var htmlurl = location.href.split('#')[0];
+        var data = {
+            htmlUrl : htmlurl
+        };
+        //调用接口进行js-sdk的注册
+        $.ajax({
+            type : "POST",
+            url : "http://qianke668.club/wx/jsapi/getSignature",
+            contentType : "application/json;charset=utf-8",
+            data : JSON.stringify(data),
+            dataType : "json",
+            success : function(message) {
+                wx.config({
+                    debug : false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                    appId : message.body.appId, // 必填，公众号的唯一标识
+                    timestamp : message.body.timestamp, // 必填，生成签名的时间戳
+                    nonceStr : message.body.nonceStr, // 必填，生成签名的随机串
+                    signature : message.body.signature,// 必填，签名
+                    jsApiList : [ "chooseWXPay" ]
+                // 必填，需要使用的JS接口列表
+                });
+            },
+            error : function(message) {
+                alert("提交失败" + JSON.stringify(message));
+
+            }
+        });
+
+        wx.ready(function() {
+            // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+        });
+
+        wx.error(function(res) {
+            // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+        });
+		
+        
+        $("#successbtn").click(function() {
+        	 window.location.href = "https://open.weixin.qq.com/connect/oauth2/authorize?appid=wx89e937d5c0d6c1f5&redirect_uri=http%3a%2f%2fwww.qianke668.club%2fwx%2fuser%2fcode%2fget%0A&response_type=code&scope=snsapi_base&state=water&connect_redirect=1#wechat_redirect";
+        });
+        
+       
+		 $("#subBtn").click(function() {
+			//获取订单内容发送至后台，并吊起微信支付；
+			
+			var price=  $("#totalMoney").html();
+			var mobile=  $("#mobile").html();
+			var contact=  $("#contact").html();
+			var address=  $("#address").html();
+			//TODO:重新构造订单类，把收货人的地址，姓名，电话也加上；
+			
+			function Product(id,count){
+	            this.id=id;
+	            this.count = count;
+	        };
+			
+			function OrderId(mobile,contact,address){
+                this.mobile=mobile;
+                this.contact = contact;
+                this.address = address;
+            };
+			
+			var productList=new Array();
+			
+			 $(".info").each(function(){
+	               var id= $(this).attr("value");
+	               var count=$("#num"+id).html();
+	               var product= new Product(id,count);
+                   productList.push(product);
+			 });
+			var orderId= new OrderId(mobile,contact,address);
+			var proJson=JSON.stringify(productList);
+			var data={
+					tenantCode:tenantCode,
+					openId:openid,
+		            price:price,                //TODO:支付的参数，看哪一步流程里有获取，jquery去获取输入框
+		            orderId:orderId,       //价格从前端页面获取，
+		            orderName:proJson       //订单id与名称根据前端的所选商品来拼接
+		        	
+			};
+			
+			 $.ajax({
+             type : "POST",
+             url : "http://qianke668.club/pay/union/order",
+             contentType : "application/json;charset=utf-8",
+             data : JSON.stringify(data),
+             dataType : "json",
+             success : function(message) {
+                  wx.chooseWXPay({
+                        timestamp: message.body.timeStamp,// 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+                        nonceStr: message.body.nonceStr, // 支付签名随机串，不长于 32 位
+                        package: message.body.package, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=\*\*\*）
+                        signType: 'MD5', // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+                        paySign: message.body.paySign, // 支付签名
+                        success: function (res) {
+                          // 支付成功后的回调函数
+                          //在这里进行支付成功之后的操作
+                          //TODO:如果支付成功，跳到支付成功界面；
+                          if(res.errMsg=='chooseWXPay:ok'){
+                        	  $("#ordersuccess").show();
+                          }
+                          
+                        }
+                      });
+             },
+             error : function(message) {
+                 alert("提交失败" + JSON.stringify(message));
+
+             }
+         });
+ 
+		 });
+		
+		var json=getVariable("productList");
+		var orderList = JSON.parse(decodeURI(json));
+		 var param="";
+		 var totalMoney=0;
+		 for(var product of orderList){
+			 var price =  product.price.split("￥");
+			 var money=parseFloat(price[1]);
+			 totalMoney=accMul(money,product.count)+totalMoney;//解决js float相乘精度的bug
+			 amount = totalMoney.toFixed(2);//将数字转成带有2位小数的字符串
+			 param += '<li  style="height:8em;"    class="waterList" ><div  id="imgandbut"> <img style="width:6em;height:6em;"  id="img'+product.id+'"   src="'+product.imgSrc+'"></img>  <div style="float:right;margin-left:4em;margin-top:2em;"  ><div>购买数量</div><input style="height:2em;"  type="button" id="btnRedu" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"  onclick="numRedu('+product.id+','+price[1]+')"   /> &nbsp;<span  class="waterCount" id="count'+product.id+'" >'+product.count+'</span>&nbsp;<input style="height:2em" type="button" id="btnPlus" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"   onclick="numPlus('+product.id+','+price[1]+')"  />   </div> </div>    <div  style="margin-bottom:0px"    ><span   class="info"  value="'+product.id+'"  id="name'+product.id+'">' +product.name +'</span>&nbsp;&nbsp;<span id="price'+product.id+'" style="color:red">￥'+price[1]+'</span>&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;× <span  class="waterCount" id="num'+product.id+'" >'+product.count+'</span>  </div>       </li> <hr/>';
+         };
+         $("#productLine").html(param);
+         $("#totalMoney").html(amount);
+         
+	});
+	
+	//解决js float相乘精度的bug
+	function accMul(arg1,arg2)
+       {
+        var m=0,s1=arg1.toString(),s2=arg2.toString();
+        try{m+=s1.split(".")[1].length}catch(e){}
+       try{m+=s2.split(".")[1].length}catch(e){}
+       return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m)
+       };
+       
+    function numRedu( index,money){
+           var count = document.getElementById('count'+index);
+           var num = document.getElementById('num'+index);
+           var totalMoney=0;
+               if(count.innerHTML>0){
+                   count.innerHTML--; 
+                   num.innerHTML--; 
+                   var pay=parseFloat(money);
+                  var nowMoney=parseFloat($("#totalMoney").html());
+                  totalMoney=nowMoney-pay;
+                  amount = totalMoney.toFixed(2);
+                   $("#totalMoney").html(amount);
+               }else{
+                   toastr.warning("购买数量不可小于0");
+               }
+              
+     };
+     function numPlus(index,money){
+          var count = document.getElementById('count'+index);
+          var num = document.getElementById('num'+index);
+          var totalMoney=0;
+          count.innerHTML++;
+          num.innerHTML++;
+          var pay=parseFloat(money);
+          var nowMoney=parseFloat($("#totalMoney").html());
+          totalMoney=pay+nowMoney;
+          amount = totalMoney.toFixed(2);
+           $("#totalMoney").html(amount);
+          
+    };
+	
+	 
+</script>
+</head>
+<body>
+   <div  id="ordersuccess"   class="weui_dialog_alert">
+    <div class="weui_mask"></div>
+    <div class="weui_dialog">
+        <div class="weui_dialog_hd"><strong class="weui_dialog_title">提交成功</strong></div>
+        <div class="weui_dialog_bd">您的订单已提交成功！商家会马上为您安排配送</div>
+        <div class="weui_dialog_ft"  id="successbtn"  >
+            <a href="javascript:;"     class="weui_btn_dialog primary">确定</a>
+        </div>
+    </div>
+  </div>
+
+
+
+	<div class="web">
+		<div class="content">
+			<div>
+				<h3 id="address"></h3>
+				<div>&nbsp;</div>
+				<div>
+					&nbsp; &nbsp; &nbsp;<span id="contact"></span> &nbsp; &nbsp;
+					&nbsp; &nbsp; &nbsp; <span id="mobile"></span>
+				</div>
+				<br>
+			</div>
+			<img id="addressline" src="static/h-ui/images/addres-line.png"></img>
+			&nbsp;&nbsp; 支付方式：&nbsp;&nbsp;微信支付 <span id="paymode"> </span>
+			<div class="weui-cell">
+				<div class="weui-cell__hd">
+					<ul id="productLine"></ul>
+				</div>
+
+			</div>
+
+		</div>
+
+		<div class="footer">
+
+			<div id="subDiv">
+
+				<span style="color: red; font-size: 18px; font-weight: bold;">&nbsp;&nbsp;&nbsp;￥</span>
+				<span style="color: red; font-size: 24px; font-weight: bold;"id="totalMoney"></span> 
+				<span  id="subBtn" >提交订单</span>
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>
