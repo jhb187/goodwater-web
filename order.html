@@ -83,7 +83,6 @@ html, body {
 <link rel="stylesheet" href="static/h-ui/css/toastr.css" />
 <script src="static/h-ui/js/toastr.min.js"></script>
 
-<!-- github测试2 -->
 
 <title>填写订单</title>
 
@@ -116,9 +115,9 @@ html, body {
 		    var ua = navigator.userAgent.toLowerCase();  
 		    if(ua.match(/MicroMessenger/i)=="micromessenger") {//这就是微信用的内置浏览器  
 		        
-		    } else {  
+		   } else {  
 		       // alert("请在微信客户端内打开！");
-		        document.head.innerHTML = '<title>抱歉，出错了</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0"><link rel="stylesheet" type="text/css" href="https://res.wx.qq.com/open/libs/weui/0.4.1/weui.css">';
+		       document.head.innerHTML = '<title>抱歉，出错了</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0"><link rel="stylesheet" type="text/css" href="https://res.wx.qq.com/open/libs/weui/0.4.1/weui.css">';
                 document.body.innerHTML = '<div class="weui_msg"><div class="weui_icon_area"><i class="weui_icon_info weui_icon_msg"></i></div><div class="weui_text_area"><h4 class="weui_msg_title">请在微信客户端打开链接</h4></div></div>';
 		    }  
 		    /******以上为判断是否在微信内打开 ***************/	    
@@ -230,8 +229,8 @@ html, body {
                 });
             },
             error : function(message) {
-                alert("提交失败" + JSON.stringify(message));
-
+                
+                toastr.warning("注册失败");
             }
         });
 
@@ -251,8 +250,31 @@ html, body {
        
 		 $("#subBtn").click(function() {
 			//获取订单内容发送至后台，并吊起微信支付；
-			
-			var price=  $("#totalMoney").html();
+            var price=  $("#totalMoney").html();
+            if(price=='0.00'){
+                toastr.warning("总价为0，您未选择任何商品！");
+                return;
+             }
+            var idArr =new Array();
+			var productList=new Array();
+			var sum=0;
+			$(".waterCount").each(function(){
+				if($(this).text()!='0'){
+					var idName=$(this).attr("id");
+					idArr.push(idName.slice(5));
+				}
+				sum=parseInt($(this).text())+sum;
+            });
+			if( sum==0){
+                toastr.warning("商品个数为0，您未选择任何商品！");
+            }else{
+            //选择商品个数不为0才提交订单
+            price=  $("#totalMoney").html(); //TODO:不能获取到最新的数据值，需要想办法改进
+            if(price=='0.00'){
+                toastr.warning("总价为0，您未选择任何商品！");
+                return;
+             }
+            
 			var mobile=  $("#mobile").html();
 			var contact=  $("#contact").html();
 			var address=  $("#address").html();
@@ -286,8 +308,10 @@ html, body {
 		            orderId:orderId,       //价格从前端页面获取，
 		            orderName:proJson       //订单id与名称根据前端的所选商品来拼接
 		        	
-			};
-			
+            };
+
+            //TODO:提交订单前，先去查询该用户下的全部水卡，将水卡中的数额进行抵扣，然后再生成价格订单
+
 			 $.ajax({
              type : "POST",
              url : "http://qianke668.club/pay/union/order",
@@ -313,10 +337,11 @@ html, body {
                       });
              },
              error : function(message) {
-                 alert("提交失败" + JSON.stringify(message));
-
+                 toastr.warning("提交订单失败，您未选择任何商品！");
              }
          });
+        }
+        
  
 		 });
 		
